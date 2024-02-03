@@ -1,5 +1,5 @@
 FROM  centos:latest
-MAINTAINER vikashashoke@gmail.com
+LABEL Key=neeraj2way@gmail.com
 RUN yum install -y httpd \
  zip\
  unzip
