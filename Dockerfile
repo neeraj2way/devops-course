@@ -1,27 +1,16 @@
-FROM  centos:latest
-LABEL email="neeraj2way@gmail.com" 
-RUN yum install -y httpd \
- zip\
- unzip
-RUN mkdir -p /var/www/html/
-ADD https://www.free-css.com/assets/files/free-css-menus/download/page1/menu2.zip /var/www/html/
-WORKDIR /var/www/html/
-RUN unzip photogenic.zip
-RUN cp -rvf photogenic/* .
-RUN rm -rf photogenic photogenic.zip
-CMD ["/usr/sbin/httpd", "-D", "FOREGROUND"]
-EXPOSE 80 22 443
+FROM ubuntu:latest
 
+# Set the working directory in the image
+WORKDIR /app
 
-# FROM  centos:latest
-# MAINTAINER vikashashoke@gmail.com
-# RUN yum install -y httpd \
-#  zip\
-#  unzip
-#  ADD https://www.free-css.com/assets/files/free-css-templates/download/page265/shine.zip /var/www/html/
-#  WORKDIR /var/www/html/
-#  RUN unzip shine.zip
-#  RUN cp -rvf shine/* .
-#  RUN rm -rf shine shine.zip
-#  CMD ["/usr/sbin/httpd", "-D", "FOREGROUND"]
-#  EXPOSE 80
+# Copy the files from the host file system to the image file system
+COPY . /app
+
+# Install the necessary packages
+RUN apt-get update && apt-get install -y python3 python3-pip
+
+# Set environment variables
+ENV NAME World
+
+# Run a command to start the application
+CMD ["python3", "app.py"]
