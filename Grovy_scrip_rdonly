@@ -1,0 +1,51 @@
+node {
+    
+    stage('git checkout'){
+        git 'https://github.com/neeraj2way/devops-course.git'
+    }
+    stage('sending docker file to ansible server over ssh'){
+        sshagent(['ubuntu_demo']) {
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.87.191'
+            sh 'scp /var/lib/jenkins/workspace/pipeline-demo/* ubuntu@172.31.87.191:/home/ubuntu'
+        }      
+    }
+       stage('Docker Build image'){
+        sshagent(['ubuntu_demo']) {
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.87.191 cd /home/ubuntu/'
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.87.191 docker image build -t $JOB_NAME:v1.$BUILD_ID .'
+        }
+    }
+       stage('Docker image tagging'){
+        sshagent(['ubuntu_demo']){
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.87.191 cd /home/ubuntu/'
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.87.191 docker image tag $JOB_NAME:v1.$BUILD_ID neeraj2way/$JOB_NAME:v1.$BUILD_ID'
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.87.191 docker image tag $JOB_NAME:v1.$BUILD_ID neeraj2way/$JOB_NAME:latest'
+        }
+    }
+        stage('push docker image to docker hub'){
+        sshagent(['ubuntu_demo']){
+            withCredentials([string(credentialsId: 'dockerhub_passwd1', variable: 'dockerhub_passwd1')]) {
+                sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.87.191 docker login -u neeraj2way -p ${dockerhub_passwd1}"
+                sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.87.191 docker image push neeraj2way/$JOB_NAME:v1.$BUILD_ID'
+                sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.87.191 docker image push neeraj2way/$JOB_NAME:latest'
+                sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.87.191 docker image rm neeraj2way/$JOB_NAME:v1.$BUILD_ID neeraj2way/$JOB_NAME:latest $JOB_NAME:v1.$BUILD_ID'
+				
+            }    
+        }    
+    }    
+    stage('copy files from ansible to K8s server'){
+        sshagent(['ubuntu_demo']){
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.92.53"
+            sh 'scp /var/lib/jenkins/workspace/pipeline-demo/* ubuntu@172.31.92.53:/home/ubuntu'
+        }    
+    }
+    stage('K8s Deloyment using ansible'){
+        sshagent(['ubuntu_demo']){
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.87.191 cd /home/ubuntu/"
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.87.191 ansible-playbook ansible.yml"
+            
+        }
+    }
+            
+            
+}
